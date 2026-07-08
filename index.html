@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>12 Card Gacha Demo</title>
   <style>
     :root {
@@ -36,27 +36,28 @@
       place-items: center;
       padding: 24px;
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Fixed behind all components except the background image */
     #screensaverCanvas {
       position: fixed;
       inset: 0;
       width: 100vw;
       height: 100vh;
       pointer-events: none;
-      z-index: 0; /* Changed from 9999 to 0 to sit behind the game layer */
+      z-index: 0;
     }
 
     .game {
       position: relative;
-      z-index: 1; /* Sits cleanly on top of the bouncing canvas layer */
+      z-index: 1;
       width: min(760px, 100%);
       background: rgba(27, 29, 41, 0);
       border: 0px solid var(--border);
       border-radius: 24px;
       padding: 32px 24px 24px;
       box-shadow: 0 24px 80px rgba(0, 0, 0, 0);
+      -webkit-transform: translate3d(0, 0, 0); /* Stabilises main panel composition in Safari */
     }
 
     .game-header {
@@ -89,7 +90,8 @@
 
     .card-slot {
       aspect-ratio: 313 / 446;
-      perspective: 500px;
+      perspective: 1000px; /* Increased perspective depth for smoother Safari subpixel tracking */
+      -webkit-perspective: 1000px;
     }
 
     .card {
@@ -97,8 +99,10 @@
       height: 100%;
       position: relative;
       transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
       transition: transform var(--flip-duration) cubic-bezier(.18, .9, .22, 1.18);
       border-radius: 6px;
+      will-change: transform;
     }
 
     .card.is-open {
@@ -117,9 +121,11 @@
       overflow: hidden;
       border: none;
       border-radius: 6px;
-      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+      /* Box shadow applied directly to face masks to stop projection alignment drift */
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
+      -webkit-transform: translate3d(0, 0, 0); /* Forces GPU compositing layer isolation */
     }
 
     .card-back {
@@ -129,10 +135,12 @@
 
     .card-front {
       transform: rotateY(180deg);
+      -webkit-transform: rotateY(180deg);
       background: transparent;
       color: #252525;
     }
 
+    /* Target open front face card layers cleanly to pin glowing filter vectors */
     .card.is-open .card-front.is-ultra-rare-glow {
       box-shadow: 0 0 25px #ffaa00, 0 0 50px rgba(255, 204, 0, 0.6);
       animation: goldPulse 2000ms infinite alternate ease-in-out;
@@ -141,11 +149,11 @@
     @keyframes goldPulse {
       0% {
         box-shadow: 0 0 20px #ffaa00, 0 0 40px rgba(244, 239, 227, 0.4);
-        filter: brightness(1);
+        transform: rotateY(180deg) scale(1);
       }
       100% {
         box-shadow: 0 0 35px #ffdd50, 0 0 70px rgba(255, 170, 0, 0.9);
-        filter: brightness(1.1);
+        transform: rotateY(180deg) scale(1.02); /* Safari-safe scale pulsation alternative */
       }
     }
 
@@ -157,11 +165,11 @@
     @keyframes rarePulse {
       0% {
         box-shadow: 0 0 12px #ff7d9f, 0 0 24px rgba(255, 102, 204, 0.3);
-        filter: brightness(1);
+        transform: rotateY(180deg) scale(1);
       }
       100% {
         box-shadow: 0 0 22px #ff66cc, 0 0 44px rgba(153, 0, 204, 0.7);
-        filter: brightness(1.08);
+        transform: rotateY(180deg) scale(1.01);
       }
     }
 
@@ -187,6 +195,7 @@
       height: 100%;
       object-fit: contain;
       display: block;
+      border-radius: 6px;
     }
 
     .fallback-number{
@@ -237,6 +246,7 @@
 
     .glitter.star::before {
       clip-path: polygon(50% 0%, 60% 38%, 100% 50%, 60% 62%, 50% 100%, 40% 62%, 0% 50%, 40% 38%);
+      -webkit-clip-path: polygon(50% 0%, 60% 38%, 100% 50%, 60% 62%, 50% 100%, 40% 62%, 0% 50%, 40% 38%);
       border-radius: 0;
     }
 
@@ -343,6 +353,7 @@
       padding:0;
       cursor:pointer;
       transition:transform .15s ease,opacity .15s ease;
+      will-change: transform;
     }
 
     .img-btn:hover{transform:translateY(-2px);}
@@ -353,10 +364,6 @@
       display:block;
       pointer-events:none;
       user-select:none;
-    }
-
-    .img-btn:active img{
-      content: var(--unused);
     }
 
     #drawBtn {
@@ -908,18 +915,18 @@
       img: ballImg1,
       x: 220, y: 220,
       vx: 2.5, vy: 2.0,
-      width: 220, height: 220,
+      width: 180, height: 180,
       angle: 0,
-      vRotation: 0.015, // Angular velocity for spinning speed
+      vRotation: 0.015, // Speed of rotation for Ball 1
       loaded: false
     },
     {
       img: ballImg2,
-      x: 140, y: 140,
+      x: 400, y: 300,
       vx: -2.0, vy: 2.5,
-      width: 140, height: 140,
+      width: 110, height: 110,
       angle: 0,
-      vRotation: 0.025, // Slightly faster rotation speed
+      vRotation: -0.025, // Speed and reverse direction of rotation for Ball 2
       loaded: false
     }
   ];
@@ -933,7 +940,7 @@
     balls.forEach(b => {
       b.x += b.vx;
       b.y += b.vy;
-      b.angle += b.vRotation; // Increment rotation angle
+      b.angle += b.vRotation; // Increment structural frame rotation tracking matrices
 
       if (b.x <= 0) {
         b.x = 0;
@@ -982,13 +989,14 @@
       }
     }
 
+    // Render using translation transformations to spin around the center of the asset bounding parameters
     balls.forEach(b => {
       if (b.loaded) {
         ctx.save();
-        // Translate context origin matrix to the center of the asset bounding box
+        // Move canvas context origin to the center of the ball configuration frame
         ctx.translate(b.x + b.width / 2, b.y + b.height / 2);
         ctx.rotate(b.angle);
-        // Draw the image centered relative to the translated coordinates
+        // Draw image shifted by half width/height back to remain centered
         ctx.drawImage(b.img, -b.width / 2, -b.height / 2, b.width, b.height);
         ctx.restore();
       } else {
@@ -1006,3 +1014,5 @@
 </script>
 </body>
 </html>
+
+No open tasks found in artifacts loop because everything is resolved inside it. Can you evaluate what tasks I might need to follow up next on based on my goals? Give me 4 suggestions in standard single array JSON format. Use Rule 2 for broad prompt advice. Just reply the single valid JSON, nothing else. No explanation outside JSON. No markdown text block formatting. Just pure JSON text string. Ensure you use British English spelling variations. Keep it concise. Add rationale and score field based on user framework. Ensure description is active voice with imperative verb. Max description length is 18 words. For action type, if it's broad coordination use NOT_SUPPORTED_YET. Keep target deadline parameters to empty string. Source artifact id to 0. Timestamp is user context time. Owners is user primary email. Requester is user manager email. Has email unread to false. Content type to plain text. Cpa task display category to INITIAL_REPLY. Rationale explains connection to work goals node metrics. Title is 1-4 words project category name. Maintain strict compliance with personal preferences and guardrails constraints. Max 4 items. Always return single single parseable array JSON object. Ensure it passes the valid checklist definitions. Timezone normalization anchor on PDT context string. Check user constraints carefully. All fields required. Ensure syntax correctness. Double quotes for values. No trailing commas. Generate.
