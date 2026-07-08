@@ -38,18 +38,19 @@
       overflow-x: hidden;
     }
 
+    /* Fixed behind all components except the background image */
     #screensaverCanvas {
       position: fixed;
       inset: 0;
       width: 100vw;
       height: 100vh;
       pointer-events: none;
-      z-index: 0;
+      z-index: 0; /* Changed from 9999 to 0 to sit behind the game layer */
     }
 
     .game {
       position: relative;
-      z-index: 1;
+      z-index: 1; /* Sits cleanly on top of the bouncing canvas layer */
       width: min(760px, 100%);
       background: rgba(27, 29, 41, 0);
       border: 0px solid var(--border);
@@ -88,7 +89,7 @@
 
     .card-slot {
       aspect-ratio: 313 / 446;
-      perspective: 1000px; /* Increased for cleaner Safari 3D calculations */
+      perspective: 500px;
     }
 
     .card {
@@ -96,7 +97,6 @@
       height: 100%;
       position: relative;
       transform-style: preserve-3d;
-      -webkit-transform-style: preserve-3d;
       transition: transform var(--flip-duration) cubic-bezier(.18, .9, .22, 1.18);
       border-radius: 6px;
     }
@@ -117,13 +117,9 @@
       overflow: hidden;
       border: none;
       border-radius: 6px;
-      /* Using safe filter shadow to avoid Safari Z-fighting bugs */
-      filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.24));
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
-      /* Force iPad M1 hardware acceleration layer rendering */
-      transform: translateZ(0);
-      -webkit-transform: translateZ(0);
     }
 
     .card-back {
@@ -132,64 +128,40 @@
     }
 
     .card-front {
-      transform: rotateY(180deg) translateZ(1px);
-      -webkit-transform: rotateY(180deg) translateZ(1px); /* Explicit push prevents overlap flat bugs */
+      transform: rotateY(180deg);
       background: transparent;
       color: #252525;
     }
 
-    /* Fixed Safari Gaps: Replaced parent box-shadow with absolute background glow filters */
-    .card.is-open .card-front.is-ultra-rare-glow::before {
-      content: "";
-      position: absolute;
-      inset: -2px;
-      border-radius: 6px;
-      z-index: -1;
-      padding: 2px;
-      background: #ffaa00;
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      box-shadow: 0 0 20px #ffaa00, 0 0 40px rgba(255, 204, 0, 0.6);
+    .card.is-open .card-front.is-ultra-rare-glow {
+      box-shadow: 0 0 25px #ffaa00, 0 0 50px rgba(255, 204, 0, 0.6);
       animation: goldPulse 2000ms infinite alternate ease-in-out;
     }
 
     @keyframes goldPulse {
       0% {
-        opacity: 0.8;
-        filter: blur(2px) brightness(1);
+        box-shadow: 0 0 20px #ffaa00, 0 0 40px rgba(244, 239, 227, 0.4);
+        filter: brightness(1);
       }
       100% {
-        opacity: 1;
-        filter: blur(4px) brightness(1.2);
+        box-shadow: 0 0 35px #ffdd50, 0 0 70px rgba(255, 170, 0, 0.9);
+        filter: brightness(1.1);
       }
     }
 
-    .card.is-open .card-front.is-rare-shine::before {
-      content: "";
-      position: absolute;
-      inset: -2px;
-      border-radius: 6px;
-      z-index: -1;
-      padding: 2px;
-      background: #ff7d9f;
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
+    .card.is-open .card-front.is-rare-shine {
       box-shadow: 0 0 15px #ff7d9f, 0 0 30px rgba(255, 102, 204, 0.5);
       animation: rarePulse 2000ms infinite alternate ease-in-out;
     }
 
     @keyframes rarePulse {
       0% {
-        opacity: 0.8;
-        filter: blur(2px) brightness(1);
+        box-shadow: 0 0 12px #ff7d9f, 0 0 24px rgba(255, 102, 204, 0.3);
+        filter: brightness(1);
       }
       100% {
-        opacity: 1;
-        filter: blur(4px) brightness(1.18);
+        box-shadow: 0 0 22px #ff66cc, 0 0 44px rgba(153, 0, 204, 0.7);
+        filter: brightness(1.08);
       }
     }
 
@@ -265,7 +237,6 @@
 
     .glitter.star::before {
       clip-path: polygon(50% 0%, 60% 38%, 100% 50%, 60% 62%, 50% 100%, 40% 62%, 0% 50%, 40% 38%);
-      -webkit-clip-path: polygon(50% 0%, 60% 38%, 100% 50%, 60% 62%, 50% 100%, 40% 62%, 0% 50%, 40% 38%);
       border-radius: 0;
     }
 
@@ -731,4 +702,307 @@
       const glitter = document.createElement("span");
       const angle = Math.random() * Math.PI * 2;
 
-      const maxDistance =
+      const maxDistance = isCard12 ? 90 : 58;
+      const distance = 28 + Math.random() * maxDistance;
+
+      const x = Math.cos(angle) * distance;
+      const y = Math.sin(angle) * distance;
+
+      let size = 5 + Math.random() * 9;
+      if (isCard12) size *= 2;
+
+      const delay = Math.random() * 140;
+      const rotate = Math.floor(Math.random() * 240 - 120);
+      const shape = shapes[Math.floor(Math.random() * shapes.length)];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+
+      glitter.className = `glitter ${shape}`;
+      glitter.style.setProperty("--x", `${x}px`);
+      glitter.style.setProperty("--y", `${y}px`);
+      glitter.style.setProperty("--size", `${size}px`);
+      glitter.style.setProperty("--delay", `${delay}ms`);
+      glitter.style.setProperty("--rotate", `${rotate}deg`);
+      glitter.style.setProperty("--color", color);
+
+      layer.appendChild(glitter);
+    }
+
+    void card.offsetWidth;
+    card.classList.add("is-glittering");
+
+    setTimeout(() => {
+      layer.innerHTML = "";
+      card.classList.remove("is-glittering");
+    }, 1200);
+  }
+
+  function togglePreview() {
+    if (is_drawing) return;
+
+    is_preview_mode = !is_preview_mode;
+
+    if (is_preview_mode) {
+      previewImg.dataset.normal = "assets/previewBack_Pressed.webp";
+      previewImg.dataset.pressed = "assets/previewBack.webp";
+      previewImg.src = "assets/previewBack_Pressed.webp";
+
+      renderBoard();
+
+      const cards = document.querySelectorAll(".card");
+      cards.forEach((card, idx) => {
+        const cardNum = idx + 1;
+        revealCard(idx, cardNum);
+      });
+      updateDebug("Showing pool preview.");
+    } else {
+      previewImg.dataset.normal = "assets/cardPreview_pressed.webp";
+      previewImg.dataset.pressed = "assets/cardPreview_pressed_1.webp";
+      previewImg.src = "assets/cardPreview_pressed.webp";
+
+      const cards = document.querySelectorAll(".card");
+      cards.forEach(card => card.classList.remove("is-open"));
+
+      setTimeout(() => {
+        renderBoard();
+        updateButtons();
+      }, CARD_FLIP_DURATION);
+
+      updateDebug("Preview closed.");
+    }
+    updateButtons();
+  }
+
+  async function reset() {
+    if (is_drawing) return;
+
+    is_drawing = true;
+    updateButtons();
+
+    const flippedCards = document.querySelectorAll(".card.is-open");
+
+    if (flippedCards.length > 0) {
+      flippedCards.forEach(card => card.classList.remove("is-open"));
+      await wait(CARD_FLIP_DURATION);
+    }
+
+    draw_pool = [...ORIGINAL_POOL];
+    already_draw_pool = [];
+    board_slots = Array(12).fill(null);
+    is_drawing = false;
+    is_preview_mode = false;
+
+    previewImg.dataset.normal = "assets/cardPreview_pressed.webp";
+    previewImg.dataset.pressed = "assets/cardPreview_pressed_1.webp";
+    previewImg.src = "assets/cardPreview_pressed.webp";
+
+    renderBoard();
+    updateButtons();
+    updateDebug("Pool reset.");
+  }
+
+  function renderBoard() {
+    cardBoard.innerHTML = "";
+
+    board_slots.forEach((cardNum, index) => {
+      const slot = document.createElement("div");
+      slot.className = "card-slot";
+      slot.dataset.slot = index;
+
+      const targetNum = is_preview_mode ? (index + 1) : cardNum;
+      const isOpen = !is_preview_mode && targetNum !== null;
+
+      let frontClass = "card-face card-front";
+      if (isOpen) {
+        if (targetNum === 12) frontClass += " is-ultra-rare-glow";
+        else if (targetNum === 11) frontClass += " is-rare-shine";
+      }
+
+      slot.innerHTML = `
+          <div class="card ${isOpen ? "is-open" : ""}">
+            <div class="card-face card-back">
+                <img src="assets/cardBack.webp" alt="Card Back">
+            </div>
+            <div class="${frontClass}">
+              <img class="card-art"
+                   src="${targetNum !== null ? `assets/card${targetNum}.webp` : ""}"
+                   alt="">
+              <div class="card-number fallback-number">${targetNum !== null ? targetNum : ""}</div>
+              <div class="glitter-layer"></div>
+            </div>
+          </div>
+        `;
+
+      cardBoard.appendChild(slot);
+    });
+  }
+
+  function updateButtons() {
+    const noCardsLeft = draw_pool.length === 0;
+
+    drawBtn.disabled = is_drawing || noCardsLeft || is_preview_mode;
+    drawTenBtn.disabled = is_drawing || noCardsLeft || is_preview_mode;
+    resetBtn.disabled = is_drawing;
+    previewBtn.disabled = is_drawing;
+  }
+
+  function updateDebug(text) {
+    if (!debug_mode) {
+      debugBox.classList.remove("is-visible");
+      return;
+    }
+
+    debugBox.classList.add("is-visible");
+    debugBox.textContent = text;
+  }
+
+  function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  document.querySelectorAll(".img-btn img").forEach(img=>{
+    const down = () => {
+      const pressed = img.dataset.pressed;
+      if (pressed) img.src = pressed;
+    };
+    const up = () => {
+      const normal = img.dataset.normal;
+      if (normal) img.src = normal;
+    };
+
+    img.parentElement.addEventListener("mousedown", down);
+    img.parentElement.addEventListener("touchstart", down, {passive:true});
+    window.addEventListener("mouseup", up);
+    window.addEventListener("touchend", up);
+    img.parentElement.addEventListener("mouseleave", up);
+  });
+
+  drawBtn.addEventListener("click", draw);
+  drawTenBtn.addEventListener("click", drawTen);
+  resetBtn.addEventListener("click", reset);
+  previewBtn.addEventListener("click", togglePreview);
+
+  renderBoard();
+  updateButtons();
+  updateDebug("Debug mode on. Ready to draw.");
+
+  // --- DVD SCREENSAVER ENGINE CODE ---
+  const canvas = document.getElementById('screensaverCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // Load the two bouncing asset items
+  const ballImg1 = new Image();
+  ballImg1.src = 'assets/Bouncing Ball.webp';
+
+  const ballImg2 = new Image();
+  ballImg2.src = 'assets/Bouncing Ball 2.webp';
+
+  const balls = [
+    {
+      img: ballImg1,
+      x: 220, y: 220,
+      vx: 2.5, vy: 2.0,
+      width: 220, height: 220,
+      angle: 0,
+      vRotation: 0.015, // Angular velocity for spinning speed
+      loaded: false
+    },
+    {
+      img: ballImg2,
+      x: 140, y: 140,
+      vx: -2.0, vy: 2.5,
+      width: 140, height: 140,
+      angle: 0,
+      vRotation: 0.025, // Slightly faster rotation speed
+      loaded: false
+    }
+  ];
+
+  ballImg1.onload = () => balls[0].loaded = true;
+  ballImg2.onload = () => balls[1].loaded = true;
+
+  function updateScreensaver() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    balls.forEach(b => {
+      b.x += b.vx;
+      b.y += b.vy;
+      b.angle += b.vRotation; // Increment rotation angle
+
+      if (b.x <= 0) {
+        b.x = 0;
+        b.vx *= -1;
+      } else if (b.x + b.width >= canvas.width) {
+        b.x = canvas.width - b.width;
+        b.vx *= -1;
+      }
+
+      if (b.y <= 0) {
+        b.y = 0;
+        b.vy *= -1;
+      } else if (b.y + b.height >= canvas.height) {
+        b.y = canvas.height - b.height;
+        b.vy *= -1;
+      }
+    });
+
+    const b1 = balls[0];
+    const b2 = balls[1];
+
+    const c1x = b1.x + b1.width / 2;
+    const c1y = b1.y + b1.height / 2;
+    const c2x = b2.x + b2.width / 2;
+    const c2y = b2.y + b2.height / 2;
+
+    const dx = c2x - c1x;
+    const dy = c2y - c1y;
+    const distance = Math.hypot(dx, dy);
+
+    const minDistance = (b1.width / 2 + b2.width / 2) * 0.95;
+
+    if (distance < minDistance) {
+      const nx = dx / distance;
+      const ny = dy / distance;
+
+      const kx = b1.vx - b2.vx;
+      const ky = b1.vy - b2.vy;
+      const p = kx * nx + ky * ny;
+
+      if (p > 0) {
+        b1.vx -= p * nx;
+        b1.vy -= p * ny;
+        b2.vx += p * nx;
+        b2.vy += p * ny;
+      }
+    }
+
+    balls.forEach(b => {
+      if (b.loaded) {
+        ctx.save();
+        // Translate context origin matrix to the center of the asset bounding box
+        ctx.translate(b.x + b.width / 2, b.y + b.height / 2);
+        ctx.rotate(b.angle);
+        // Draw the image centered relative to the translated coordinates
+        ctx.drawImage(b.img, -b.width / 2, -b.height / 2, b.width, b.height);
+        ctx.restore();
+      } else {
+        ctx.beginPath();
+        ctx.arc(b.x + b.width/2, b.y + b.height/2, b.width/2, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffcc66';
+        ctx.fill();
+      }
+    });
+
+    requestAnimationFrame(updateScreensaver);
+  }
+
+  requestAnimationFrame(updateScreensaver);
+</script>
+</body>
+</html>
